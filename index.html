@@ -26,9 +26,9 @@ h1{font-size:1.45rem;line-height:1.4;font-weight:normal;margin:0 0 22px}
 p.q{font-size:1.15rem;margin:0 0 24px;color:var(--accent)}
 .row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
 button{font:inherit;font-size:1.05rem;border:0;border-radius:999px;padding:12px 28px;cursor:pointer;touch-action:manipulation}
-.yes,.choice{background:var(--accent);color:var(--accent-text)}
-.no{background:var(--muted);color:var(--text);transition:left .25s ease,top .25s ease}
-.no.fly{position:fixed;z-index:5}
+.yes,.choice,.ok{background:var(--accent);color:var(--accent-text)}
+.dodge{background:var(--accent);color:var(--accent-text);transition:left .25s ease,top .25s ease}
+.fly{position:fixed;z-index:5}
 .choices{display:flex;flex-direction:column;gap:14px}
 .big{font-size:2.6rem;margin-top:10px}
 </style>
@@ -40,7 +40,7 @@ button{font:inherit;font-size:1.05rem;border:0;border-radius:999px;padding:12px 
   <p class="q">Est-ce que ça te dit ?</p>
   <div class="row">
     <button class="yes" id="yes">Oui</button>
-    <button class="no" id="no" type="button" aria-disabled="true">Non</button>
+    <button class="dodge" type="button" aria-disabled="true">Non</button>
   </div>
 </section>
 
@@ -53,58 +53,105 @@ button{font:inherit;font-size:1.05rem;border:0;border-radius:999px;padding:12px 
 </section>
 
 <section class="page" id="p3">
-  <h1>Hâte de te retrouver</h1>
+  <h1>Quelle tenue vas-tu porter partie 1</h1>
+  <div class="choices">
+    <button class="dodge" type="button" aria-disabled="true">Une culotte de grand-mère</button>
+    <button class="dodge" type="button" aria-disabled="true">Une culotte en coton</button>
+    <button class="ok">Rien</button>
+  </div>
+</section>
+
+<section class="page" id="p4">
+  <h1>Quelle tenue vas-tu porter partie 2</h1>
+  <div class="choices">
+    <button class="dodge" type="button" aria-disabled="true">Jean / t-shirt</button>
+    <button class="dodge" type="button" aria-disabled="true">Un maillot de bain</button>
+    <button class="ok">Une robe ultra sexy</button>
+  </div>
+</section>
+
+<section class="page" id="p5">
+  <h1>Quelle tenue vas-tu porter partie 3</h1>
+  <div class="choices">
+    <button class="dodge" type="button" aria-disabled="true">Des tongs</button>
+    <button class="ok">Des escarpins</button>
+    <button class="dodge" type="button" aria-disabled="true">Des crocs</button>
+  </div>
+</section>
+
+<section class="page" id="p6">
+  <h1>Très bon choix. Hâte de te retrouver. Je t’envoie l’adresse très rapidement 😘</h1>
   <div class="big">💫</div>
-  <p id="dbg" style="font-size:.75rem;opacity:.6;margin-top:18px"></p>
 </section>
 
 <script>
+const ACCESS_KEY = "2bbcfc2e-8b0c-478d-8293-e38b90724d6b";
+let choix = '';
+
 const show = id => {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 };
-document.getElementById('yes').addEventListener('click', () => {
-  document.getElementById('no').style.display = 'none';
-  show('p2');
-});
-const ACCESS_KEY = "2bbcfc2e-8b0c-478d-8293-e38b90724d6b";
 
-document.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => {
+document.getElementById('yes').addEventListener('click', () => show('p2'));
+
+document.querySelectorAll('#p2 .choice').forEach(b => b.addEventListener('click', () => {
+  choix = b.textContent.trim();
   show('p3');
+}));
+
+document.querySelector('#p3 .ok').addEventListener('click', () => show('p4'));
+
+document.querySelector('#p4 .ok').addEventListener('click', () => show('p5'));
+
+document.querySelector('#p5 .ok').addEventListener('click', () => {
+  show('p6');
   fetch('https://api.web3forms.com/submit', {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
     body: JSON.stringify({
       access_key: ACCESS_KEY,
       subject: 'Réponse à ton invitation 💌',
-      message: 'Elle a dit oui ! Choix : ' + b.textContent.trim()
+      message: 'Elle a dit oui ! Choix : ' + choix
     })
-  }).then(r => r.json())
-    .then(d => { document.getElementById('dbg').textContent = 'Debug : ' + (d.success ? 'mail envoyé' : 'erreur - ' + d.message); })
-    .catch(e => { document.getElementById('dbg').textContent = 'Debug : échec réseau - ' + e; });
-}));
+  }).catch(() => {});
+});
 
-// Le bouton « Non » ne peut pas être sélectionné : il s'échappe
-const no = document.getElementById('no');
-function dodge(e){
-  e.preventDefault();
-  e.stopPropagation();
-  const w = no.offsetWidth, h = no.offsetHeight, m = 12;
-  const maxX = window.innerWidth - w - m, maxY = window.innerHeight - h - m;
-  let x, y, tries = 0;
-  const cur = no.getBoundingClientRect();
-  do {
-    x = m + Math.random() * Math.max(maxX - m, 0);
-    y = m + Math.random() * Math.max(maxY - m, 0);
-    tries++;
-  } while (tries < 20 && Math.hypot(x - cur.left, y - cur.top) < 120);
-  no.classList.add('fly');
-  no.style.left = x + 'px';
-  no.style.top = y + 'px';
-}
-['pointerenter','pointerdown','touchstart','click','focus'].forEach(ev =>
-  no.addEventListener(ev, dodge, {passive:false}));
-no.addEventListener('keydown', dodge);
+// Les boutons « dodge » ne peuvent pas être sélectionnés : ils s'échappent
+document.querySelectorAll('.dodge').forEach(el => {
+  let placeholder = null;
+  const avoid = [...el.closest('.page').querySelectorAll('.yes,.ok')];
+  function dodge(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!placeholder) {
+      const r = el.getBoundingClientRect();
+      placeholder = document.createElement('div');
+      placeholder.style.width = r.width + 'px';
+      placeholder.style.height = r.height + 'px';
+      el.parentNode.insertBefore(placeholder, el);
+      el.style.width = r.width + 'px';
+    }
+    const w = el.offsetWidth, h = el.offsetHeight, m = 12;
+    const maxX = Math.max(window.innerWidth - w - m, m);
+    const maxY = Math.max(window.innerHeight - h - m, m);
+    const cur = el.getBoundingClientRect();
+    const rects = avoid.map(a => a.getBoundingClientRect());
+    let x, y, tries = 0, ok;
+    do {
+      x = m + Math.random() * (maxX - m);
+      y = m + Math.random() * (maxY - m);
+      ok = Math.hypot(x - cur.left, y - cur.top) > 120 &&
+           rects.every(r => x + w + 10 < r.left || x > r.right + 10 || y + h + 10 < r.top || y > r.bottom + 10);
+      tries++;
+    } while (!ok && tries < 40);
+    el.classList.add('fly');
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+  }
+  ['pointerenter','pointerdown','touchstart','click','focus'].forEach(ev => el.addEventListener(ev, dodge, {passive:false}));
+  el.addEventListener('keydown', dodge);
+});
 </script>
 </body>
 </html>
