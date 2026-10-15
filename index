@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Une invitation</title>
+<style>
+:root{
+  --bg:#fdf1f3; --card:#ffffff; --text:#3a2530; --accent:#e0577a; --accent-text:#ffffff; --muted:#f3d9e0;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){--bg:#1d1318;--card:#2a1c23;--text:#f7e6ec;--accent:#ee6f91;--accent-text:#1d1318;--muted:#43303a;color-scheme:dark;}
+}
+:root[data-theme="dark"]{--bg:#1d1318;--card:#2a1c23;--text:#f7e6ec;--accent:#ee6f91;--accent-text:#1d1318;--muted:#43303a;color-scheme:dark;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+*{box-sizing:border-box}
+body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:Georgia,"Times New Roman",serif;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.page{display:none;width:min(92vw,460px);background:var(--card);border-radius:24px;padding:36px 26px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.12)}
+.page.active{display:block;animation:in .5s ease}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+h1{font-size:1.45rem;line-height:1.4;font-weight:normal;margin:0 0 22px}
+p.q{font-size:1.15rem;margin:0 0 24px;color:var(--accent)}
+.row{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+button{font:inherit;font-size:1.05rem;border:0;border-radius:999px;padding:12px 28px;cursor:pointer;touch-action:manipulation}
+.yes,.choice{background:var(--accent);color:var(--accent-text)}
+.no{background:var(--muted);color:var(--text);transition:left .25s ease,top .25s ease}
+.no.fly{position:fixed;z-index:5}
+.choices{display:flex;flex-direction:column;gap:14px}
+.big{font-size:2.6rem;margin-top:10px}
+</style>
+</head>
+<body>
+
+<section class="page active" id="p1">
+  <h1>Bonjour belle inconnue, j’aimerais beaucoup passer la soirée de mercredi prochain avec toi</h1>
+  <p class="q">Est-ce que ça te dit ?</p>
+  <div class="row">
+    <button class="yes" id="yes">Oui</button>
+    <button class="no" id="no" type="button" aria-disabled="true">Non</button>
+  </div>
+</section>
+
+<section class="page" id="p2">
+  <h1>Super ! Qu’est-ce qui te tente ?</h1>
+  <div class="choices">
+    <button class="choice" data-c="verres">On va boire des verres</button>
+    <button class="choice" data-c="diner">On va dîner</button>
+  </div>
+</section>
+
+<section class="page" id="p3">
+  <h1>Hâte de te retrouver</h1>
+  <div class="big">💫</div>
+  <p id="dbg" style="font-size:.75rem;opacity:.6;margin-top:18px"></p>
+</section>
+
+<script>
+const show = id => {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+};
+document.getElementById('yes').addEventListener('click', () => {
+  document.getElementById('no').style.display = 'none';
+  show('p2');
+});
+const ACCESS_KEY = "2bbcfc2e-8b0c-478d-8293-e38b90724d6b";
+
+document.querySelectorAll('.choice').forEach(b => b.addEventListener('click', () => {
+  show('p3');
+  fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+    body: JSON.stringify({
+      access_key: ACCESS_KEY,
+      subject: 'Réponse à ton invitation 💌',
+      message: 'Elle a dit oui ! Choix : ' + b.textContent.trim()
+    })
+  }).then(r => r.json())
+    .then(d => { document.getElementById('dbg').textContent = 'Debug : ' + (d.success ? 'mail envoyé' : 'erreur - ' + d.message); })
+    .catch(e => { document.getElementById('dbg').textContent = 'Debug : échec réseau - ' + e; });
+}));
+
+// Le bouton « Non » ne peut pas être sélectionné : il s'échappe
+const no = document.getElementById('no');
+function dodge(e){
+  e.preventDefault();
+  e.stopPropagation();
+  const w = no.offsetWidth, h = no.offsetHeight, m = 12;
+  const maxX = window.innerWidth - w - m, maxY = window.innerHeight - h - m;
+  let x, y, tries = 0;
+  const cur = no.getBoundingClientRect();
+  do {
+    x = m + Math.random() * Math.max(maxX - m, 0);
+    y = m + Math.random() * Math.max(maxY - m, 0);
+    tries++;
+  } while (tries < 20 && Math.hypot(x - cur.left, y - cur.top) < 120);
+  no.classList.add('fly');
+  no.style.left = x + 'px';
+  no.style.top = y + 'px';
+}
+['pointerenter','pointerdown','touchstart','click','focus'].forEach(ev =>
+  no.addEventListener(ev, dodge, {passive:false}));
+no.addEventListener('keydown', dodge);
+</script>
+</body>
+</html>
