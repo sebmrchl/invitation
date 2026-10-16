@@ -31,6 +31,8 @@ button{font:inherit;font-size:1.05rem;border:0;border-radius:999px;padding:12px 
 .fly{position:fixed;z-index:5}
 .choices{display:flex;flex-direction:column;gap:14px}
 .big{font-size:2.6rem;margin-top:10px}
+textarea{width:100%;min-height:110px;font:inherit;font-size:1rem;padding:12px 14px;border:2px solid var(--muted);border-radius:16px;background:var(--bg);color:var(--text);resize:vertical;margin-bottom:18px}
+textarea:focus{outline:none;border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -53,33 +55,39 @@ button{font:inherit;font-size:1.05rem;border:0;border-radius:999px;padding:12px 
 </section>
 
 <section class="page" id="p3">
-  <h1>Quelle tenue vas-tu porter partie 1</h1>
-  <div class="choices">
-    <button class="dodge" type="button" aria-disabled="true">Une culotte de grand-mère</button>
-    <button class="dodge" type="button" aria-disabled="true">Une culotte en coton</button>
-    <button class="ok">Rien</button>
-  </div>
-</section>
-
-<section class="page" id="p4">
-  <h1>Quelle tenue vas-tu porter partie 2</h1>
+  <h1>Que penses-tu porter ?</h1>
   <div class="choices">
     <button class="dodge" type="button" aria-disabled="true">Jean / t-shirt</button>
-    <button class="dodge" type="button" aria-disabled="true">Un maillot de bain</button>
+    <button class="dodge" type="button" aria-disabled="true">Une tenue de Running</button>
     <button class="ok">Une robe ultra sexy</button>
   </div>
 </section>
 
-<section class="page" id="p5">
-  <h1>Quelle tenue vas-tu porter partie 3</h1>
+<section class="page" id="p4">
+  <h1>Et en dessous ?</h1>
   <div class="choices">
-    <button class="dodge" type="button" aria-disabled="true">Des tongs</button>
+    <button class="dodge" type="button" aria-disabled="true">Un ensemble assorti</button>
+    <button class="dodge" type="button" aria-disabled="true">Un body</button>
+    <button class="ok">Rien de plus que du parfum</button>
+  </div>
+</section>
+
+<section class="page" id="p5">
+  <h1>Que penses-tu porter ?</h1>
+  <div class="choices">
+    <button class="dodge" type="button" aria-disabled="true">Des baskets</button>
     <button class="ok">Des escarpins</button>
-    <button class="dodge" type="button" aria-disabled="true">Des crocs</button>
+    <button class="dodge" type="button" aria-disabled="true">Des ballerines</button>
   </div>
 </section>
 
 <section class="page" id="p6">
+  <h1>Et moi que veux-tu que je porte ou fasse ?</h1>
+  <textarea id="texte" placeholder="Écris ici…"></textarea>
+  <button class="ok" id="send">Valider</button>
+</section>
+
+<section class="page" id="p7">
   <h1>Très bon choix. Hâte de te retrouver. Je t’envoie l’adresse très rapidement 😘</h1>
   <div class="big">💫</div>
 </section>
@@ -100,19 +108,26 @@ document.querySelectorAll('#p2 .choice').forEach(b => b.addEventListener('click'
   show('p3');
 }));
 
-document.querySelector('#p3 .ok').addEventListener('click', () => show('p4'));
+const labels = {p3: 'Tenue', p4: 'En dessous', p5: 'Chaussures'};
+const reponses = [];
+const record = id => reponses.push(labels[id] + ' : ' + document.querySelector('#' + id + ' .ok').textContent.trim());
 
-document.querySelector('#p4 .ok').addEventListener('click', () => show('p5'));
+document.querySelector('#p3 .ok').addEventListener('click', () => { record('p3'); show('p4'); });
 
-document.querySelector('#p5 .ok').addEventListener('click', () => {
-  show('p6');
+document.querySelector('#p4 .ok').addEventListener('click', () => { record('p4'); show('p5'); });
+
+document.querySelector('#p5 .ok').addEventListener('click', () => { record('p5'); show('p6'); });
+
+document.getElementById('send').addEventListener('click', () => {
+  const texte = document.getElementById('texte').value.trim() || '(pas de réponse)';
+  show('p7');
   fetch('https://api.web3forms.com/submit', {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
     body: JSON.stringify({
       access_key: ACCESS_KEY,
       subject: 'Réponse à ton invitation 💌',
-      message: 'Elle a dit oui ! Choix : ' + choix
+      message: 'Elle a dit oui !\n\nSortie : ' + choix + '\n' + reponses.join('\n') + '\n\nPour moi (porter ou faire) : ' + texte
     })
   }).catch(() => {});
 });
